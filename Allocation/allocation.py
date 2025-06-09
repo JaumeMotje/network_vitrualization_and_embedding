@@ -11,8 +11,24 @@ class VirtualNetworkAllocation:
         Args:
             network_data: Dictionary containing network information
         """
-        self.capacity_matrix = np.array(network_data['capacity_matrix'])
-        self.original_capacity_matrix = np.array(network_data['capacity_matrix'])
+        # Convertir cadenas vacías a 0 en la matriz de capacidad
+        capacity_matrix_raw = network_data['capacity_matrix']
+        capacity_matrix_processed = []
+        
+        for row in capacity_matrix_raw:
+            processed_row = []
+            for cell in row:
+                if cell == "" or cell is None:
+                    processed_row.append(0)
+                else:
+                    try:
+                        processed_row.append(float(cell))
+                    except (ValueError, TypeError):
+                        processed_row.append(0)
+            capacity_matrix_processed.append(processed_row)
+        
+        self.capacity_matrix = np.array(capacity_matrix_processed, dtype=float)
+        self.original_capacity_matrix = np.array(capacity_matrix_processed, dtype=float)
         
         # Convertir demandas al formato esperado
         demands_formatted = []
@@ -163,10 +179,10 @@ class VirtualNetworkAllocation:
             if self.can_allocate_path_on_matrix(path, bandwidth, temp_capacity):
                 self.allocate_path_on_matrix(path, bandwidth, temp_capacity)
                 
-                revenue = self.calculate_revenue(demand)
+                
                 cost = self.calculate_path_cost(path, bandwidth)
                 
-                total_revenue += revenue
+                total_revenue += cost
                 total_cost += cost
                 allocated_demands.append((demand_idx, path))
             else:
@@ -302,7 +318,7 @@ class VirtualNetworkAllocation:
                 'path': path,
                 'path_length': len(path) - 1,
                 'cost': self.calculate_path_cost(path, demand['bandwidth']),
-                'revenue': self.calculate_revenue(demand)
+                'revenue': self.calculate_path_cost(path, demand['bandwidth'])
             })
         
         return {
