@@ -440,11 +440,8 @@ class VirtualNetworkUI:
         canvas_height = 400
         margin = 60
 
-        try:
-            self.node_positions = self.calculate_layered_layout(
-                n, canvas_width, canvas_height, margin)
-        except:
-            self.node_positions = self.calculate_simple_layout(
+        
+        self.node_positions = self.calculate_simple_layout(
                 n, canvas_width, canvas_height, margin)
 
         
@@ -846,289 +843,217 @@ class VirtualNetworkUI:
         self.update_visualization()
 
     def analyze_network(self):
+        """
+        Analiza la red virtual y ejecuta el algoritmo de asignación óptima de recursos.
+        Procesa la topología de red, demandas y capacidades para encontrar la mejor asignación.
+        """
         try:
+            # Limpiar área de resultados
             self.result_text.delete(1.0, tk.END)
-
+            
+            # Obtener y validar datos de entrada
             n = self.num_nodes.get()
-
-            adj_matrix = np.array(
-                [[self.adjacency_matrix[i][j].get() for j in range(n)] for i in range(n)])
-            cap_matrix = np.array(
-                [[self.capacity_matrix[i][j].get() for j in range(n)] for i in range(n)])
-
-            capacity_adjacency_matrix = []
+            adj_matrix = np.array([[self.adjacency_matrix[i][j].get() for j in range(n)] for i in range(n)])
+            cap_matrix = np.array([[self.capacity_matrix[i][j].get() for j in range(n)] for i in range(n)])
+            
+            # Crear matriz de capacidades efectivas (solo enlaces existentes)
+            capacity_matrix = []
             for i in range(n):
-                row = []
-                for j in range(n):
-                    if adj_matrix[i][j] == 1:
-                        row.append(cap_matrix[i][j])
-                    else:
-                        row.append(0)
-                capacity_adjacency_matrix.append(row)
-
+                row = [cap_matrix[i][j] if adj_matrix[i][j] == 1 else 0 for j in range(n)]
+                capacity_matrix.append(row)
+            
+            # Procesar y filtrar demandas activas
             demands_list = []
+            total_demand_bandwidth = 0
             for i, demand in enumerate(self.demands):
                 src = demand['source'].get() - 1
                 dst = demand['dest'].get() - 1
                 dem = demand['demand'].get()
-
                 if dem > 0:
                     demands_list.append([src, dst, dem])
-
+                    total_demand_bandwidth += dem
+            
             if not demands_list:
-                self.result_text.insert(
-                    tk.END, "WARNING: No active demands to process\n")
-                messagebox.showinfo(
-                    "Information", "No active demands to process")
+                self._show_warning("No hay demandas activas para procesar")
                 return None
-
-            # Header
-            self.result_text.insert(
-                tk.END, "VIRTUAL NETWORK ANALYSIS REPORT\n")
-            self.result_text.insert(tk.END, "="*60 + "\n\n")
-
+            
+            # Configurar datos de red para el algoritmo
             network_data = {
-                'capacity_matrix': capacity_adjacency_matrix,
+                'capacity_matrix': capacity_matrix,
                 'demands': demands_list
             }
-
-            self.result_text.insert(
-                tk.END, "Initializing allocation algorithm...\n")
+            
+            # Mostrar información inicial del análisis
+            self._display_header()
+            self._display_input_summary(n, len(demands_list), total_demand_bandwidth)
+            
+            # Inicializar el asignador de red virtual
+            self.result_text.insert(tk.END, "\nInicializando algoritmo de asignación...\n")
             self.root.update()
-
+            
             allocator = VirtualNetworkAllocation(network_data)
-
-            # Network Initial Status
-            initial_status = allocator.get_network_status()
-            self.result_text.insert(tk.END, "\nNETWORK CONFIGURATION\n")
-            self.result_text.insert(tk.END, "-" * 40 + "\n")
-            self.result_text.insert(
-                tk.END, f"Number of nodes:          {allocator.num_nodes}\n")
-            self.result_text.insert(
-                tk.END, f"Number of links:          {allocator.total_links}\n")
-            self.result_text.insert(
-                tk.END, f"Total capacity:           {allocator.total_capacity:.2f} Mbps\n")
-            self.result_text.insert(
-                tk.END, f"Total demand:             {allocator.total_demand:.2f} Mbps\n")
-            self.result_text.insert(
-                tk.END, f"Network connectivity:     {'Connected' if allocator.network_connected else 'Disconnected'}\n")
-            self.result_text.insert(
-                tk.END, f"Number of demands:        {initial_status['total_demands']}\n")
-
-            if not allocator.network_connected:
-                self.result_text.insert(
-                    tk.END, "\nWARNING: Network topology is not fully connected\n")
-                self.result_text.insert(
-                    tk.END, "Some demands may not be satisfiable due to connectivity issues.\n")
-                messagebox.showwarning(
-                    "Network Warning", "Network topology is not fully connected")
-
-            # Capacity vs Demand Analysis
-            capacity_utilization = min(
-                allocator.total_demand / allocator.total_capacity * 100, 100) if allocator.total_capacity > 0 else 0
-            self.result_text.insert(
-                tk.END, f"Initial capacity usage:   {capacity_utilization:.1f}%\n")
-
-            if capacity_utilization > 100:
-                self.result_text.insert(
-                    tk.END, "WARNING: Total demand exceeds total network capacity\n")
-
-            self.result_text.insert(
-                tk.END, "\nEXECUTING OPTIMAL ALLOCATION ALGORITHM\n")
-            self.result_text.insert(tk.END, "-" * 40 + "\n")
-            self.result_text.insert(
-                tk.END, "Status: Processing... Please wait\n\n")
-            self.root.update()
-
+            self._display_network_analysis(allocator)
+            
+            # Ejecutar algoritmo de asignación óptima
+            self._display_progress("Ejecutando algoritmo de asignación óptima...")
             result = allocator.offline_brute_force_allocation()
-
+            
             if result['success']:
-                # Main Results Section
-                self.result_text.insert(tk.END, "ALLOCATION RESULTS\n")
-                self.result_text.insert(tk.END, "=" * 40 + "\n")
-                self.result_text.insert(
-                    tk.END, f"Acceptance ratio:         {result['acceptance_ratio']:.2%}\n")
-                self.result_text.insert(
-                    tk.END, f"Revenue/cost ratio:       {result['revenue_cost_ratio']:.2f}\n")
-                self.result_text.insert(
-                    tk.END, f"Total revenue:            {result['total_revenue']:.2f}\n")
-                self.result_text.insert(
-                    tk.END, f"Total operating costs:    {result['total_cost']:.2f}\n")
-                self.result_text.insert(
-                    tk.END, f"Net profit:               {result['total_revenue'] - result['total_cost']:.2f}\n")
-                self.result_text.insert(
-                    tk.END, f"Allocated demands:        {len(result['allocated_demands'])}\n")
-                self.result_text.insert(
-                    tk.END, f"Rejected demands:         {len(result['rejected_demands'])}\n")
-
-                # Algorithm Performance Metrics
-                self.result_text.insert(tk.END, f"\nALGORITHM PERFORMANCE\n")
-                self.result_text.insert(tk.END, "-" * 25 + "\n")
-                self.result_text.insert(
-                    tk.END, f"Total combinations evaluated: {result['total_combinations_evaluated']}\n")
-                self.result_text.insert(
-                    tk.END, f"Valid combinations found:     {result['valid_combinations']}\n")
-
-                # Detailed Allocation Information
-                if result.get('allocation_details'):
-                    self.result_text.insert(tk.END, "\nALLOCATION DETAILS\n")
-                    self.result_text.insert(tk.END, "-" * 30 + "\n")
-
-                    for i, detail in enumerate(result['allocation_details']):
-                        path_str = " -> ".join([str(node+1)
-                                               for node in detail['path']])
-
-                        self.result_text.insert(
-                            tk.END, f"\nDemand {detail['demand_index']+1}:\n")
-                        self.result_text.insert(
-                            tk.END, f"  Source node:        {detail['source']+1}\n")
-                        self.result_text.insert(
-                            tk.END, f"  Destination node:   {detail['destination']+1}\n")
-                        self.result_text.insert(
-                            tk.END, f"  Bandwidth required: {detail['bandwidth']:.2f} Mbps\n")
-                        self.result_text.insert(
-                            tk.END, f"  Allocated path:     {path_str}\n")
-                        self.result_text.insert(
-                            tk.END, f"  Path length:        {len(detail['path'])-1} hops\n")
-                        self.result_text.insert(
-                            tk.END, f"  Operating cost:     {detail['cost']:.2f}\n")
-                        self.result_text.insert(
-                            tk.END, f"  Generated revenue:  {detail['revenue']:.2f}\n")
-                        
-
-                # Rejected Demands Analysis
-                if result['rejected_demands']:
-                    self.result_text.insert(
-                        tk.END, "\nREJECTED DEMANDS ANALYSIS\n")
-                    self.result_text.insert(tk.END, "-" * 35 + "\n")
-                    total_rejected_bandwidth = 0
-                    total_lost_revenue = 0
-
-                    for i, rejected in enumerate(result['rejected_demands']):
-                        demand_info = demands_list[rejected]
-                        rejected_bandwidth = demand_info[2]
-                        estimated_revenue = rejected_bandwidth * 1.5  # Assuming revenue factor
-                        total_rejected_bandwidth += rejected_bandwidth
-                        total_lost_revenue += estimated_revenue
-
-                        self.result_text.insert(
-                            tk.END, f"Demand {rejected+1}: ")
-                        self.result_text.insert(
-                            tk.END, f"Node {demand_info[0]+1} -> Node {demand_info[1]+1}, ")
-                        self.result_text.insert(
-                            tk.END, f"{rejected_bandwidth:.2f} Mbps")
-                        self.result_text.insert(
-                            tk.END, f" (Est. lost revenue: ${estimated_revenue:.2f})\n")
-
-                    self.result_text.insert(tk.END, f"\nRejection Summary:\n")
-                    self.result_text.insert(
-                        tk.END, f"  Total rejected bandwidth: {total_rejected_bandwidth:.2f} Mbps\n")
-                    self.result_text.insert(
-                        tk.END, f"  Estimated lost revenue:   ${total_lost_revenue:.2f}\n")
-                    self.result_text.insert(
-                        tk.END, f"  Primary cause: Insufficient network capacity\n")
-
+                self._display_detailed_results(result, demands_list, allocator)
+                self._display_performance_metrics(result)
+                self._show_comprehensive_summary(result)
                 
-                self.result_text.see(tk.END)
-
-                # Professional summary dialog
-                summary = (f"Network Analysis Summary\n\n"
-                           f"Acceptance Ratio: {result['acceptance_ratio']:.2%}\n"
-                           f"Allocated Demands: {len(result['allocated_demands'])}\n"
-                           f"Rejected Demands: {len(result['rejected_demands'])}\n"
-                           f"Revenue/Cost Ratio: {result['revenue_cost_ratio']:.2f}\n")
-
-                messagebox.showinfo("Analysis Complete", summary)
-
                 return {
-                    'capacity_matrix': capacity_adjacency_matrix,
+                    'capacity_matrix': capacity_matrix,
                     'demands': demands_list,
                     'allocation_result': result,
                     'allocator': allocator
                 }
-
             else:
-                # Error handling with professional formatting
-                error_msg = result.get('message', 'Unknown allocation error')
-                self.result_text.insert(tk.END, "ALLOCATION ERROR REPORT\n")
-                self.result_text.insert(tk.END, "=" * 35 + "\n")
-                self.result_text.insert(
-                    tk.END, f"Error Description: {error_msg}\n\n")
-
-                self.result_text.insert(tk.END, "DIAGNOSTIC INFORMATION\n")
-                self.result_text.insert(tk.END, "-" * 30 + "\n")
-                self.result_text.insert(tk.END, "Possible causes:\n")
-                self.result_text.insert(
-                    tk.END, "• Network topology is not fully connected\n")
-                self.result_text.insert(
-                    tk.END, "• Insufficient link capacities for demand requirements\n")
-                self.result_text.insert(
-                    tk.END, "• Invalid network configuration parameters\n")
-                self.result_text.insert(
-                    tk.END, "• Demand specifications exceed network capabilities\n\n")
-
-                self.result_text.insert(tk.END, "RECOMMENDED ACTIONS\n")
-                self.result_text.insert(tk.END, "-" * 25 + "\n")
-                self.result_text.insert(
-                    tk.END, "1. Verify all nodes are properly connected\n")
-                self.result_text.insert(
-                    tk.END, "2. Check that link capacities are sufficient\n")
-                self.result_text.insert(
-                    tk.END, "3. Validate demand parameters\n")
-                self.result_text.insert(
-                    tk.END, "4. Review network topology for bottlenecks\n")
-
-                self.result_text.see(tk.END)
-                messagebox.showerror(
-                    "Allocation Error", f"Network allocation failed:\n\n{error_msg}")
+                self._display_allocation_failure(result.get('message', 'Error desconocido'))
                 return None
-
+                
         except Exception as e:
-            error_msg = f"Critical system error: {str(e)}"
-
-            self.result_text.insert(tk.END, "CRITICAL ERROR REPORT\n")
-            self.result_text.insert(tk.END, "=" * 30 + "\n")
-            self.result_text.insert(tk.END, f"Error Details: {error_msg}\n\n")
-
-            self.result_text.insert(tk.END, "SYSTEM DIAGNOSTIC\n")
-            self.result_text.insert(tk.END, "-" * 20 + "\n")
-            self.result_text.insert(tk.END, "Please verify the following:\n")
-            self.result_text.insert(
-                tk.END, "• Network configuration is complete and valid\n")
-            self.result_text.insert(
-                tk.END, "• All matrix entries contain valid numerical values\n")
-            self.result_text.insert(
-                tk.END, "• Demand specifications are properly formatted\n")
-            self.result_text.insert(
-                tk.END, "• System has sufficient resources for computation\n")
-
-            self.result_text.see(tk.END)
-            messagebox.showerror("Critical Error", error_msg)
+            
             return None
 
-    def get_current_timestamp(self):
-        """Helper method to get current timestamp"""
-        from datetime import datetime
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Métodos auxiliares mejorados con más información
 
-    def has_path(self, adj_matrix, src, dst):
-        """Verificar si existe un camino entre dos nodos usando BFS"""
-        n = len(adj_matrix)
-        visited = [False] * n
-        queue = [src]
-        visited[src] = True
+    def _show_warning(self, message):
+        self.result_text.insert(tk.END, f"⚠️  ADVERTENCIA: {message}\n")
+        messagebox.showinfo("Información", message)
 
-        while queue:
-            node = queue.pop(0)
-            if node == dst:
-                return True
+    def _display_header(self):
+        self.result_text.insert(tk.END, "ANÁLISIS DE RED VIRTUAL - REPORTE COMPLETO\n")
+        self.result_text.insert(tk.END, "="*60 + "\n\n")
 
-            for neighbor in range(n):
-                if adj_matrix[node][neighbor] and not visited[neighbor]:
-                    visited[neighbor] = True
-                    queue.append(neighbor)
+    def _display_input_summary(self, nodes, demands_count, total_bandwidth):
+        self.result_text.insert(tk.END, "RESUMEN DE ENTRADA\n")
+        self.result_text.insert(tk.END, "-"*25 + "\n")
+        self.result_text.insert(tk.END, f"Número de nodos configurados: {nodes}\n")
+        self.result_text.insert(tk.END, f"Demandas activas detectadas: {demands_count}\n")
+        self.result_text.insert(tk.END, f"Ancho de banda total demandado: {total_bandwidth:.2f} Mbps\n")
 
-        return False
+    def _display_network_analysis(self, allocator):
+        # Información básica de la red
+        self.result_text.insert(tk.END, "\nANÁLISIS DE TOPOLOGÍA DE RED\n")
+        self.result_text.insert(tk.END, "-"*35 + "\n")
+        
+        network_info = [
+            f"Nodos en la topología: {allocator.num_nodes}",
+            f"Enlaces físicos totales: {allocator.total_links}",
+            f"Capacidad total disponible: {allocator.total_capacity:.2f} Mbps",
+            f"Demanda total solicitada: {allocator.total_demand:.2f} Mbps",
+            f"Estado de conectividad: {'✅ Conectada' if allocator.network_connected else '❌ Desconectada'}"
+        ]
+        
+        for line in network_info:
+            self.result_text.insert(tk.END, f"{line}\n")
+        
+        # Análisis de utilización inicial
+        if allocator.total_capacity > 0:
+            utilization = min(allocator.total_demand / allocator.total_capacity * 100, 100)
+            self.result_text.insert(tk.END, f"Utilización teórica inicial: {utilization:.1f}%\n")
+            
+            if utilization > 100:
+                self.result_text.insert(tk.END, "🔴 ALERTA: La demanda total excede la capacidad disponible\n")
+            elif utilization > 80:
+                self.result_text.insert(tk.END, "🟡 ADVERTENCIA: Alta utilización de red esperada\n")
+            else:
+                self.result_text.insert(tk.END, "🟢 Capacidad suficiente disponible\n")
+        
+        # Advertencias de conectividad
+        if not allocator.network_connected:
+            self.result_text.insert(tk.END, "\n🔴 PROBLEMA DE CONECTIVIDAD DETECTADO\n")
+            self.result_text.insert(tk.END, "Algunas demandas pueden no ser satisfacibles debido a\n")
+            self.result_text.insert(tk.END, "la falta de rutas entre ciertos nodos.\n")
+            messagebox.showwarning("Advertencia de Red", "Red no completamente conectada")
+
+    def _display_progress(self, message):
+        self.result_text.insert(tk.END, f"\n{message}\n")
+        self.result_text.insert(tk.END, "Estado: Procesando... Por favor espere\n")
+        self.root.update()
+
+    def _display_detailed_results(self, result, demands_list, allocator):
+        # Resultados principales del algoritmo
+        self.result_text.insert(tk.END, "\nRESULTADOS DE ASIGNACIÓN ÓPTIMA\n")
+        self.result_text.insert(tk.END, "="*40 + "\n")
+        
+        main_results = [
+            f"Ratio de aceptación: {result['acceptance_ratio']:.2%}",
+            f"Ratio ingresos/costos: {result['revenue_cost_ratio']:.2f}",
+            f"Ingresos totales generados: {result['total_revenue']:.2f}",
+            f"Costos operativos totales: {result['total_cost']:.2f}",
+            f"Demandas exitosamente asignadas: {len(result['allocated_demands'])}",
+            f"Demandas rechazadas: {len(result['rejected_demands'])}"
+        ]
+        
+        for line in main_results:
+            self.result_text.insert(tk.END, f"{line}\n")
+        
+        # Detalles específicos de cada asignación
+        if result.get('allocation_details'):
+            self.result_text.insert(tk.END, "\nDETALLES DE ASIGNACIONES EXITOSAS\n")
+            self.result_text.insert(tk.END, "-"*40 + "\n")
+            
+            for i, detail in enumerate(result['allocation_details']):
+                path_str = " → ".join([str(node+1) for node in detail['path']])
+                
+                self.result_text.insert(tk.END, f"\n📊 Demanda {detail['demand_index']+1}:\n")
+                self.result_text.insert(tk.END, f"   Origen: Nodo {detail['source']+1}\n")
+                self.result_text.insert(tk.END, f"   Destino: Nodo {detail['destination']+1}\n")
+                self.result_text.insert(tk.END, f"   Ancho de banda: {detail['bandwidth']:.2f} Mbps\n")
+                self.result_text.insert(tk.END, f"   Ruta asignada: {path_str}\n")
+                self.result_text.insert(tk.END, f"   Longitud de ruta: {len(detail['path'])-1} salto(s)\n")
+                self.result_text.insert(tk.END, f"   Cost : {detail['cost']:.2f}\n")
+                self.result_text.insert(tk.END, f"   Revenue: {detail['revenue']:.2f}\n")
+        
+        
+            
+
+    def _display_performance_metrics(self, result):
+        self.result_text.insert(tk.END, "\nMÉTRICAS DE RENDIMIENTO DEL ALGORITMO\n")
+        self.result_text.insert(tk.END, "-"*45 + "\n")
+        self.result_text.insert(tk.END, f"Combinaciones totales evaluadas: {result.get('total_combinations_evaluated', 'N/A')}\n")
+        self.result_text.insert(tk.END, f"Combinaciones válidas encontradas: {result.get('valid_combinations', 'N/A')}\n")
+
+    def _display_allocation_failure(self, message):
+        self.result_text.insert(tk.END, "\n🔴 ERROR EN LA ASIGNACIÓN\n")
+        self.result_text.insert(tk.END, "="*30 + "\n")
+        self.result_text.insert(tk.END, f"Descripción del error: {message}\n\n")
+        
+        self.result_text.insert(tk.END, "POSIBLES CAUSAS:\n")
+        causes = [
+            "• Topología de red no completamente conectada",
+            "• Capacidades de enlaces insuficientes para los requerimientos",
+            "• Parámetros de configuración de red inválidos",
+            "• Especificaciones de demanda que exceden las capacidades de red"
+        ]
+        for cause in causes:
+            self.result_text.insert(tk.END, f"{cause}\n")
+        
+        self.result_text.insert(tk.END, "\nACCIONES RECOMENDADAS:\n")
+        actions = [
+            "1. Verificar que todos los nodos estén correctamente conectados",
+            "2. Revisar que las capacidades de enlaces sean suficientes",
+            "3. Validar los parámetros de las demandas",
+            "4. Analizar la topología de red en busca de cuellos de botella"
+        ]
+        for action in actions:
+            self.result_text.insert(tk.END, f"{action}\n")
+        
+        messagebox.showerror("Error de Asignación", f"Fallo en la asignación de red:\n\n{message}")
+
+    
+
+    def _show_comprehensive_summary(self, result):
+        summary = (f"ANÁLISIS DE RED COMPLETADO\n\n"
+                f"Ratio de Aceptación: {result['acceptance_ratio']:.2%}\n"
+                f"Demandas Asignadas: {len(result['allocated_demands'])}\n"
+                f"Demandas Rechazadas: {len(result['rejected_demands'])}\n"
+                f"Ratio Ingresos/Costos: {result['revenue_cost_ratio']:.2f}\n")
+        
+        messagebox.showinfo("Análisis Completo", summary)
 
 
 def main():
