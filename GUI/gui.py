@@ -8,6 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Allocation.allocation import VirtualNetworkAllocation
+from KPIs import kpi
 
 class VirtualNetworkUI:
     def __init__(self, root):
@@ -973,27 +974,32 @@ class VirtualNetworkUI:
         # Resultados principales del algoritmo
         self.result_text.insert(tk.END, "\nRESULTADOS DE ASIGNACIÓN ÓPTIMA\n")
         self.result_text.insert(tk.END, "="*40 + "\n")
-        
+
+        # KPIs calculados modularmente
+        acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(demands_list))
+        revenue_cost = kpi.revenue_cost_ratio(result['total_revenue'], result['total_cost'])
+        total_rev = kpi.total_revenue(result.get('allocation_details', []))
+        total_cst = kpi.total_cost(result.get('allocation_details', []))
+        assigned = kpi.num_demands_assigned(result['allocated_demands'])
+        rejected = kpi.num_demands_rejected(result['rejected_demands'])
+
         main_results = [
-            f"Ratio de aceptación: {result['acceptance_ratio']:.2%}",
-            f"Ratio ingresos/costos: {result['revenue_cost_ratio']:.2f}",
-            f"Ingresos totales generados: {result['total_revenue']:.2f}",
-            f"Costos operativos totales: {result['total_cost']:.2f}",
-            f"Demandas exitosamente asignadas: {len(result['allocated_demands'])}",
-            f"Demandas rechazadas: {len(result['rejected_demands'])}"
+            f"Ratio de aceptación: {acceptance:.2%}",
+            f"Ratio ingresos/costos: {revenue_cost:.2f}",
+            f"Ingresos totales generados: {total_rev:.2f}",
+            f"Costos operativos totales: {total_cst:.2f}",
+            f"Demandas exitosamente asignadas: {assigned}",
+            f"Demandas rechazadas: {rejected}"
         ]
-        
         for line in main_results:
             self.result_text.insert(tk.END, f"{line}\n")
-        
+
         # Detalles específicos de cada asignación
         if result.get('allocation_details'):
             self.result_text.insert(tk.END, "\nDETALLES DE ASIGNACIONES EXITOSAS\n")
             self.result_text.insert(tk.END, "-"*40 + "\n")
-            
             for i, detail in enumerate(result['allocation_details']):
                 path_str = " → ".join([str(node+1) for node in detail['path']])
-                
                 self.result_text.insert(tk.END, f"\n📊 Demanda {detail['demand_index']+1}:\n")
                 self.result_text.insert(tk.END, f"   Origen: Nodo {detail['source']+1}\n")
                 self.result_text.insert(tk.END, f"   Destino: Nodo {detail['destination']+1}\n")
@@ -1002,52 +1008,25 @@ class VirtualNetworkUI:
                 self.result_text.insert(tk.END, f"   Longitud de ruta: {len(detail['path'])-1} salto(s)\n")
                 self.result_text.insert(tk.END, f"   Cost : {detail['cost']:.2f}\n")
                 self.result_text.insert(tk.END, f"   Revenue: {detail['revenue']:.2f}\n")
-        
-        
-            
 
     def _display_performance_metrics(self, result):
         self.result_text.insert(tk.END, "\nMÉTRICAS DE RENDIMIENTO DEL ALGORITMO\n")
         self.result_text.insert(tk.END, "-"*45 + "\n")
-        self.result_text.insert(tk.END, f"Combinaciones totales evaluadas: {result.get('total_combinations_evaluated', 'N/A')}\n")
-        self.result_text.insert(tk.END, f"Combinaciones válidas encontradas: {result.get('valid_combinations', 'N/A')}\n")
-
-    def _display_allocation_failure(self, message):
-        self.result_text.insert(tk.END, "\n🔴 ERROR EN LA ASIGNACIÓN\n")
-        self.result_text.insert(tk.END, "="*30 + "\n")
-        self.result_text.insert(tk.END, f"Descripción del error: {message}\n\n")
-        
-        self.result_text.insert(tk.END, "POSIBLES CAUSAS:\n")
-        causes = [
-            "• Topología de red no completamente conectada",
-            "• Capacidades de enlaces insuficientes para los requerimientos",
-            "• Parámetros de configuración de red inválidos",
-            "• Especificaciones de demanda que exceden las capacidades de red"
-        ]
-        for cause in causes:
-            self.result_text.insert(tk.END, f"{cause}\n")
-        
-        self.result_text.insert(tk.END, "\nACCIONES RECOMENDADAS:\n")
-        actions = [
-            "1. Verificar que todos los nodos estén correctamente conectados",
-            "2. Revisar que las capacidades de enlaces sean suficientes",
-            "3. Validar los parámetros de las demandas",
-            "4. Analizar la topología de red en busca de cuellos de botella"
-        ]
-        for action in actions:
-            self.result_text.insert(tk.END, f"{action}\n")
-        
-        messagebox.showerror("Error de Asignación", f"Fallo en la asignación de red:\n\n{message}")
-
-    
+        total_combs = kpi.total_combinations_evaluated(result)
+        valid_combs = kpi.valid_combinations(result)
+        self.result_text.insert(tk.END, f"Combinaciones totales evaluadas: {total_combs}\n")
+        self.result_text.insert(tk.END, f"Combinaciones válidas encontradas: {valid_combs}\n")
 
     def _show_comprehensive_summary(self, result):
+        acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(result['allocated_demands']) + len(result['rejected_demands']))
+        revenue_cost = kpi.revenue_cost_ratio(result['total_revenue'], result['total_cost'])
+        assigned = kpi.num_demands_assigned(result['allocated_demands'])
+        rejected = kpi.num_demands_rejected(result['rejected_demands'])
         summary = (f"ANÁLISIS DE RED COMPLETADO\n\n"
-                f"Ratio de Aceptación: {result['acceptance_ratio']:.2%}\n"
-                f"Demandas Asignadas: {len(result['allocated_demands'])}\n"
-                f"Demandas Rechazadas: {len(result['rejected_demands'])}\n"
-                f"Ratio Ingresos/Costos: {result['revenue_cost_ratio']:.2f}\n")
-        
+                f"Ratio de Aceptación: {acceptance:.2%}\n"
+                f"Demandas Asignadas: {assigned}\n"
+                f"Demandas Rechazadas: {rejected}\n"
+                f"Ratio Ingresos/Costos: {revenue_cost:.2f}\n")
         messagebox.showinfo("Análisis Completo", summary)
 
 

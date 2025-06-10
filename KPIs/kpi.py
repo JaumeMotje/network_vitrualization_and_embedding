@@ -1,0 +1,37 @@
+# KPIs para la asignación de red virtual
+
+def acceptance_ratio(allocated_demands, total_demands):
+    """Calcula el ratio de aceptación de demandas."""
+    if total_demands == 0:
+        return 0.0
+    return len(allocated_demands) / total_demands
+
+def revenue_cost_ratio(total_revenue, total_cost):
+    """Calcula el ratio ingresos/costos."""
+    if total_cost == 0:
+        return 0.0
+    return total_revenue / total_cost
+
+def total_revenue(allocated_details):
+    """Suma los ingresos de las demandas asignadas."""
+    return sum(detail.get('revenue', 0) for detail in allocated_details)
+
+def total_cost(allocated_details):
+    """Suma los costos de las demandas asignadas."""
+    return sum(detail.get('cost', 0) for detail in allocated_details)
+
+def num_demands_assigned(allocated_demands):
+    """Cuenta las demandas asignadas."""
+    return len(allocated_demands)
+
+def num_demands_rejected(rejected_demands):
+    """Cuenta las demandas rechazadas."""
+    return len(rejected_demands)
+
+def total_combinations_evaluated(result):
+    """Obtiene el número de combinaciones evaluadas."""
+    return result.get('total_combinations_evaluated', 'N/A')
+
+def valid_combinations(result):
+    """Obtiene el número de combinaciones válidas."""
+    return result.get('valid_combinations', 'N/A')
