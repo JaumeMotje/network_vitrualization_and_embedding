@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
@@ -349,7 +348,7 @@ class VirtualNetworkUI:
                 if i != j:
                     cb = ttk.Checkbutton(self.adj_scrollable_frame,
                                          variable=self.adjacency_matrix[i][j],
-                                         command=lambda r=i, c=j: self.sync_adjacency(r, c))
+                                         command=self.update_visualization)
                     cb.grid(row=i+1, column=j+1)
                 else:
                     tk.Label(self.adj_scrollable_frame, text="—").grid(
@@ -378,10 +377,6 @@ class VirtualNetworkUI:
 
         self.update_demands()
         self.status_label.config(text="Ready", fg='green')
-
-    def sync_adjacency(self, i, j):
-        self.adjacency_matrix[j][i].set(self.adjacency_matrix[i][j].get())
-        self.update_visualization()
 
     def update_demands(self):
         for widget in self.demand_scrollable_frame.winfo_children():
