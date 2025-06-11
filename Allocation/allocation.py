@@ -11,7 +11,7 @@ class VirtualNetworkAllocation:
         Args:
             network_data: Dictionary containing network information
         """
-        # Convertir cadenas vacías a 0 en la matriz de capacidad
+        # Convert empty strings to 0 in the capacity matrix
         capacity_matrix_raw = network_data['capacity_matrix']
         capacity_matrix_processed = []
         
@@ -27,10 +27,11 @@ class VirtualNetworkAllocation:
                         processed_row.append(0)
             capacity_matrix_processed.append(processed_row)
         
+        # Store the processed capacity matrix as numpy arrays
         self.capacity_matrix = np.array(capacity_matrix_processed, dtype=float)
         self.original_capacity_matrix = np.array(capacity_matrix_processed, dtype=float)
         
-        # Convertir demandas al formato esperado
+        # Convert demands to the expected format
         demands_formatted = []
         for demand in network_data['demands']:
             if len(demand) >= 3:
@@ -38,30 +39,33 @@ class VirtualNetworkAllocation:
                     'source': int(demand[0]),
                     'destination': int(demand[1]),
                     'bandwidth': float(demand[2]),
-                    'duration': 1,  # Valor por defecto
-                    'price_per_unit': 1.0  # Valor por defecto
+                    'duration': 1,  # Default value
+                    'price_per_unit': 1.0  # Default value
                 })
         
         self.demands = demands_formatted
         
-        # Crear matriz de adyacencia basada en capacidades
+        # Create adjacency matrix based on capacities (1 if link exists, 0 otherwise)
         self.adjacency_matrix = (self.capacity_matrix > 0).astype(int)
         self.num_nodes = len(self.capacity_matrix)
         
-        # Calcular estadísticas de la red
-        self.total_links = np.sum(self.adjacency_matrix) // 2  # Dividir por 2 si es no dirigida
+        # Calculate network statistics
+        self.total_links = np.sum(self.adjacency_matrix) // 2  # Divide by 2 if undirected
         self.total_capacity = np.sum(self.capacity_matrix)
         self.total_demand = sum([d['bandwidth'] for d in self.demands])
         self.network_connected = self._check_connectivity()
         
-        # Track allocations
+        # Track allocations and statistics
         self.allocated_demands = []
         self.rejected_demands = []
         self.current_revenue = 0
         self.current_cost = 0
     
     def _check_connectivity(self) -> bool:
-        """Verificar si la red está conectada usando DFS"""
+        """
+        Check if the network is connected using DFS
+        Returns True if all nodes are reachable from node 0
+        """
         if self.num_nodes <= 1:
             return True
         
@@ -73,14 +77,17 @@ class VirtualNetworkAllocation:
                 if not visited[neighbor] and self.adjacency_matrix[node][neighbor] == 1:
                     dfs(neighbor)
         
-        # Empezar DFS desde el primer nodo
+        # Start DFS from the first node
         dfs(0)
         
-        # Verificar si todos los nodos fueron visitados
+        # Check if all nodes were visited
         return all(visited)
     
     def calculate_path_cost(self, path: List[int], demand_bandwidth: float) -> float:
-        """Calculate the cost of allocating a demand on a specific path"""
+        """
+        Calculate the cost of allocating a demand on a specific path
+        Cost is proportional to bandwidth and path length
+        """
         cost = 0
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
@@ -89,11 +96,17 @@ class VirtualNetworkAllocation:
         return cost
     
     def calculate_revenue(self, demand: Dict) -> float:
-        """Calculate revenue from a demand"""
+        """
+        Calculate revenue from a demand
+        Revenue = bandwidth * duration * price per unit
+        """
         return demand.get('bandwidth', 0) * demand.get('duration', 1) * demand.get('price_per_unit', 1.0)
     
     def find_all_paths(self, source: int, destination: int, max_hops: int = None) -> List[List[int]]:
-        """Find all possible paths between source and destination"""
+        """
+        Find all possible paths between source and destination using DFS
+        Optionally limit the maximum number of hops
+        """
         if max_hops is None:
             max_hops = self.num_nodes - 1
             
@@ -123,7 +136,10 @@ class VirtualNetworkAllocation:
         return all_paths
     
     def can_allocate_path(self, path: List[int], bandwidth: float) -> bool:
-        """Check if a path has enough capacity for the bandwidth requirement"""
+        """
+        Check if a path has enough capacity for the bandwidth requirement
+        Returns True if all links in the path have enough capacity
+        """
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
             if self.capacity_matrix[node_from][node_to] < bandwidth:
@@ -131,7 +147,10 @@ class VirtualNetworkAllocation:
         return True
     
     def allocate_path(self, path: List[int], bandwidth: float) -> None:
-        """Allocate bandwidth on a path by reducing capacity"""
+        """
+        Allocate bandwidth on a path by reducing capacity on each link
+        If the network is undirected, also reduce the reverse direction
+        """
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
             self.capacity_matrix[node_from][node_to] -= bandwidth
@@ -140,7 +159,10 @@ class VirtualNetworkAllocation:
                 self.capacity_matrix[node_to][node_from] -= bandwidth
     
     def deallocate_path(self, path: List[int], bandwidth: float) -> None:
-        """Deallocate bandwidth from a path by restoring capacity"""
+        """
+        Deallocate bandwidth from a path by restoring capacity on each link
+        If the network is undirected, also restore the reverse direction
+        """
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
             self.capacity_matrix[node_from][node_to] += bandwidth
@@ -148,7 +170,10 @@ class VirtualNetworkAllocation:
                 self.capacity_matrix[node_to][node_from] += bandwidth
     
     def can_allocate_path_on_matrix(self, path: List[int], bandwidth: float, capacity_matrix: np.ndarray) -> bool:
-        """Check if a path has enough capacity on a given capacity matrix"""
+        """
+        Check if a path has enough capacity on a given capacity matrix
+        Used for evaluating hypothetical allocation scenarios
+        """
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
             if capacity_matrix[node_from][node_to] < bandwidth:
@@ -156,7 +181,10 @@ class VirtualNetworkAllocation:
         return True
     
     def allocate_path_on_matrix(self, path: List[int], bandwidth: float, capacity_matrix: np.ndarray) -> None:
-        """Allocate bandwidth on a path on a given capacity matrix"""
+        """
+        Allocate bandwidth on a path on a given capacity matrix
+        Used for evaluating hypothetical allocation scenarios
+        """
         for i in range(len(path) - 1):
             node_from, node_to = path[i], path[i + 1]
             capacity_matrix[node_from][node_to] -= bandwidth
@@ -164,7 +192,10 @@ class VirtualNetworkAllocation:
                 capacity_matrix[node_to][node_from] -= bandwidth
     
     def evaluate_allocation_scenario(self, allocation_scenario: List[Tuple]) -> Dict:
-        """Evaluate a complete allocation scenario"""
+        """
+        Evaluate a complete allocation scenario
+        Returns metrics such as acceptance ratio, revenue/cost ratio, and allocation validity
+        """
         temp_capacity = self.capacity_matrix.copy()
         
         allocated_demands = []
@@ -179,7 +210,7 @@ class VirtualNetworkAllocation:
             if self.can_allocate_path_on_matrix(path, bandwidth, temp_capacity):
                 self.allocate_path_on_matrix(path, bandwidth, temp_capacity)
                 
-                
+                # Calculate cost and revenue for the allocation
                 cost = self.calculate_path_cost(path, bandwidth)
                 
                 total_revenue += cost
@@ -213,10 +244,13 @@ class VirtualNetworkAllocation:
         }
     
     def offline_brute_force_allocation(self) -> Dict:
-        """Perform offline brute-force allocation to find optimal scenario"""
+        """
+        Perform offline brute-force allocation to find the optimal scenario
+        Tries all possible combinations of demand allocations and selects the best one
+        """
         print("Iniciando asignación offline por fuerza bruta...")
         
-        # Generar todos los caminos posibles para cada demanda
+        # Generate all possible paths for each demand
         demand_paths = []
         for i, demand in enumerate(self.demands):
             source = demand.get('source')
@@ -248,12 +282,12 @@ class VirtualNetworkAllocation:
             'revenue_cost_ratio': -1
         }
         
-        # Generar opciones para cada demanda
+        # Generate options for each demand (including not assigning)
         demand_options = []
         for demand_idx, paths in demand_paths:
-            options = [(demand_idx, None)]  # Opción de no asignar
+            options = [(demand_idx, None)]  # Option to not assign
             for path in paths:
-                options.append((demand_idx, path))  # Opciones de asignar en diferentes caminos
+                options.append((demand_idx, path))  # Options to assign on different paths
             demand_options.append(options)
         
         print(f"Evaluando escenarios de asignación para {len(demand_paths)} demandas...")
@@ -261,20 +295,20 @@ class VirtualNetworkAllocation:
         total_combinations = 0
         valid_combinations = 0
         
-        # Generar todas las combinaciones
+        # Generate all combinations of assignments
         for combination in itertools.product(*demand_options):
             total_combinations += 1
             
-            # Filtrar opciones de no asignación y crear escenario
+            # Filter out unassigned options and create scenario
             scenario = [(demand_idx, path) for demand_idx, path in combination if path is not None]
             
-            # Evaluar escenario
+            # Evaluate scenario
             metrics = self.evaluate_allocation_scenario(scenario)
             
             if metrics['valid']:
                 valid_combinations += 1
                 
-                # Verificar si es el mejor escenario
+                # Check if this is the best scenario so far
                 is_better = False
                 if metrics['acceptance_ratio'] > best_metrics['acceptance_ratio']:
                     is_better = True
@@ -298,7 +332,7 @@ class VirtualNetworkAllocation:
                 'allocation_details': []
             }
         
-        # Aplicar el mejor escenario
+        # Apply the best scenario to the network
         self.capacity_matrix = best_metrics['temp_capacity_matrix'].copy()
         self.allocated_demands = [self.demands[i] for i, _ in best_scenario]
         allocated_indices = {i for i, _ in best_scenario}
@@ -306,7 +340,7 @@ class VirtualNetworkAllocation:
         self.current_revenue = best_metrics['total_revenue']
         self.current_cost = best_metrics['total_cost']
         
-        # Crear detalles de asignación para mostrar
+        # Create allocation details for display
         allocation_details = []
         for demand_idx, path in best_scenario:
             demand = self.demands[demand_idx]
@@ -335,7 +369,10 @@ class VirtualNetworkAllocation:
         }
     
     def get_network_status(self) -> Dict:
-        """Get current network status and statistics"""
+        """
+        Get current network status and statistics
+        Returns information such as utilization, revenue, cost, and acceptance ratio
+        """
         total_original_capacity = np.sum(self.original_capacity_matrix)
         total_remaining_capacity = np.sum(self.capacity_matrix)
         utilization = (total_original_capacity - total_remaining_capacity) / total_original_capacity if total_original_capacity > 0 else 0
@@ -355,7 +392,10 @@ class VirtualNetworkAllocation:
         }
     
     def reset_network(self):
-        """Reset network to original state"""
+        """
+        Reset network to original state
+        Restores capacity matrix and clears allocation statistics
+        """
         self.capacity_matrix = self.original_capacity_matrix.copy()
         self.allocated_demands = []
         self.rejected_demands = []
