@@ -13,7 +13,7 @@ from KPIs import kpi
 class VirtualNetworkUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Virtual Network Dashboard")
+        self.root.title("Panel de Control de Red Virtual")
         self.root.geometry("1200x800")
 
         # Variables principales
@@ -70,7 +70,7 @@ class VirtualNetworkUI:
         parent.configure(bg='#ffffff')
 
         # Panel de configuración con diseño limpio
-        config_frame = tk.LabelFrame(parent, text="Network Configuration",
+        config_frame = tk.LabelFrame(parent, text="• Configuración de Red",
                                      font=("Segoe UI", 11, "normal"),
                                      bg='#ffffff', fg='#2c3e50',
                                      bd=0, relief='flat', padx=12, pady=8)
@@ -81,13 +81,13 @@ class VirtualNetworkUI:
         config_row.pack(fill=tk.X, pady=4)
 
         # Estilo minimalista para controles
-        tk.Label(config_row, text="Nodes:", font=("Segoe UI", 10),
+        tk.Label(config_row, text="Nodos:", font=("Segoe UI", 10),
                  bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
         nodes_spin = ttk.Spinbox(config_row, from_=2, to=20, textvariable=self.num_nodes,
                                  command=self.update_matrices, width=6)
         nodes_spin.pack(side=tk.LEFT, padx=(0, 20))
 
-        tk.Label(config_row, text="Demands:", font=("Segoe UI", 10),
+        tk.Label(config_row, text="Demandas:", font=("Segoe UI", 10),
                  bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
         demands_spin = ttk.Spinbox(config_row, from_=1, to=50, textvariable=self.num_demands,
                                    command=self.update_demands, width=6)
@@ -101,13 +101,13 @@ class VirtualNetworkUI:
         style = ttk.Style()
         style.configure('Modern.TButton', padding=(12, 6))
 
-        ttk.Button(btn_frame, text="Update", command=self.update_matrices,
+        ttk.Button(btn_frame, text="Actualizar", command=self.update_matrices,
                    style='Modern.TButton').pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Clear", command=self.clear_all,
+        ttk.Button(btn_frame, text="Limpiar", command=self.clear_all,
                    style='Modern.TButton').pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Example", command=self.load_example,
+        ttk.Button(btn_frame, text="Ejemplo", command=self.load_example,
                    style='Modern.TButton').pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Analyze", command=self.analyze_network,
+        ttk.Button(btn_frame, text="Analizar", command=self.analyze_network,
                    style='Modern.TButton').pack(side=tk.LEFT, padx=3)
 
         # Separador sutil
@@ -118,14 +118,14 @@ class VirtualNetworkUI:
         viz_frame = tk.Frame(config_frame, bg='#ffffff')
         viz_frame.pack(fill=tk.X, pady=4)
 
-        tk.Label(viz_frame, text="Display Options:", font=("Segoe UI", 10),
+        tk.Label(viz_frame, text="Opciones de Visualización:", font=("Segoe UI", 10),
                  bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 12))
 
-        ttk.Checkbutton(viz_frame, text="Capacities", variable=self.show_capacities,
+        ttk.Checkbutton(viz_frame, text="Capacidades", variable=self.show_capacities,
                         command=self.update_visualization).pack(side=tk.LEFT, padx=8)
-        ttk.Checkbutton(viz_frame, text="Demands", variable=self.show_demands,
+        ttk.Checkbutton(viz_frame, text="Demandas", variable=self.show_demands,
                         command=self.update_visualization).pack(side=tk.LEFT, padx=8)
-        ttk.Checkbutton(viz_frame, text="Node Labels", variable=self.show_node_labels,
+        ttk.Checkbutton(viz_frame, text="Etiquetas de Nodos", variable=self.show_node_labels,
                         command=self.update_visualization).pack(side=tk.LEFT, padx=8)
 
         # Otro separador
@@ -144,10 +144,10 @@ class VirtualNetworkUI:
         # Añadir campos para Coste y Revenue por Mbps
         price_frame = tk.Frame(parent, bg='#ffffff')
         price_frame.pack(fill=tk.X, padx=12, pady=(0, 8))
-        tk.Label(price_frame, text="Cost per Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
+        tk.Label(price_frame, text="Coste por Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
         self.cost_per_mbps = tk.DoubleVar(value=1.0)
         tk.Entry(price_frame, textvariable=self.cost_per_mbps, width=8).pack(side=tk.LEFT, padx=(0, 20))
-        tk.Label(price_frame, text="Revenue per Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
+        tk.Label(price_frame, text="Ingreso por Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
         self.revenue_per_mbps = tk.DoubleVar(value=10.0)
         tk.Entry(price_frame, textvariable=self.revenue_per_mbps, width=8).pack(side=tk.LEFT, padx=(0, 20))
 
@@ -158,68 +158,112 @@ class VirtualNetworkUI:
         matrices_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
 
         # Matriz de adyacencia con diseño limpio
-        adj_frame = tk.LabelFrame(matrices_frame, text="Adjacency Matrix",
-                                  font=("Segoe UI", 11, "normal"),
-                                  bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
+        adj_frame = tk.LabelFrame(matrices_frame, text="• Matriz de Adyacencia",
+                                font=("Segoe UI", 11, "normal"),
+                                bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
         adj_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
 
         # Container con borde sutil
         adj_container = tk.Frame(adj_frame, bg='#f8f9fa', relief='solid', bd=1)
         adj_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
+        # Canvas y scrollbars para matriz de adyacencia
         adj_canvas = tk.Canvas(adj_container, height=160,
-                               bg='#ffffff', highlightthickness=0)
+                            bg='#ffffff', highlightthickness=0)
         adj_scrollbar_v = ttk.Scrollbar(
             adj_container, orient="vertical", command=adj_canvas.yview)
         adj_scrollbar_h = ttk.Scrollbar(
             adj_container, orient="horizontal", command=adj_canvas.xview)
+        
+        # Frame scrollable para la matriz
         self.adj_scrollable_frame = tk.Frame(adj_canvas, bg='#ffffff')
 
-        self.adj_scrollable_frame.bind("<Configure>",
-                                       lambda e: adj_canvas.configure(scrollregion=adj_canvas.bbox("all")))
+        # Función para actualizar la región de scroll
+        def update_adj_scroll_region(event=None):
+            adj_canvas.configure(scrollregion=adj_canvas.bbox("all"))
 
-        adj_canvas.create_window(
-            (0, 0), window=self.adj_scrollable_frame, anchor="nw")
+        self.adj_scrollable_frame.bind("<Configure>", update_adj_scroll_region)
+
+        # Crear ventana en el canvas
+        adj_canvas.create_window((0, 0), window=self.adj_scrollable_frame, anchor="nw")
         adj_canvas.configure(yscrollcommand=adj_scrollbar_v.set,
-                             xscrollcommand=adj_scrollbar_h.set)
+                            xscrollcommand=adj_scrollbar_h.set)
 
-        adj_canvas.pack(side="left", fill="both", expand=True)
-        adj_scrollbar_v.pack(side="right", fill="y")
+        # Función para scroll con rueda del mouse
+        def on_adj_mousewheel(event):
+            adj_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        def on_adj_shift_mousewheel(event):
+            adj_canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+
+        # Vincular eventos de scroll
+        adj_canvas.bind("<MouseWheel>", on_adj_mousewheel)
+        adj_canvas.bind("<Shift-MouseWheel>", on_adj_shift_mousewheel)
+        adj_canvas.bind("<Button-4>", lambda e: adj_canvas.yview_scroll(-1, "units"))
+        adj_canvas.bind("<Button-5>", lambda e: adj_canvas.yview_scroll(1, "units"))
+
+        # Pack de elementos
         adj_scrollbar_h.pack(side="bottom", fill="x")
+        adj_scrollbar_v.pack(side="right", fill="y")
+        adj_canvas.pack(side="left", fill="both", expand=True)
 
         # Matriz de capacidades con el mismo estilo
-        cap_frame = tk.LabelFrame(matrices_frame, text="Capacity Matrix (Mbps)",
-                                  font=("Segoe UI", 11, "normal"),
-                                  bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
+        cap_frame = tk.LabelFrame(matrices_frame, text="• Matriz de Capacidad (Mbps)",
+                                font=("Segoe UI", 11, "normal"),
+                                bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
         cap_frame.pack(fill=tk.BOTH, expand=True)
 
         cap_container = tk.Frame(cap_frame, bg='#f8f9fa', relief='solid', bd=1)
         cap_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
+        # Canvas y scrollbars para matriz de capacidades
         cap_canvas = tk.Canvas(cap_container, height=160,
-                               bg='#ffffff', highlightthickness=0)
+                            bg='#ffffff', highlightthickness=0)
         cap_scrollbar_v = ttk.Scrollbar(
             cap_container, orient="vertical", command=cap_canvas.yview)
         cap_scrollbar_h = ttk.Scrollbar(
             cap_container, orient="horizontal", command=cap_canvas.xview)
+        
+        # Frame scrollable para la matriz
         self.cap_scrollable_frame = tk.Frame(cap_canvas, bg='#ffffff')
 
-        self.cap_scrollable_frame.bind("<Configure>",
-                                       lambda e: cap_canvas.configure(scrollregion=cap_canvas.bbox("all")))
+        # Función para actualizar la región de scroll
+        def update_cap_scroll_region(event=None):
+            cap_canvas.configure(scrollregion=cap_canvas.bbox("all"))
 
-        cap_canvas.create_window(
-            (0, 0), window=self.cap_scrollable_frame, anchor="nw")
+        self.cap_scrollable_frame.bind("<Configure>", update_cap_scroll_region)
+
+        # Crear ventana en el canvas
+        cap_canvas.create_window((0, 0), window=self.cap_scrollable_frame, anchor="nw")
         cap_canvas.configure(yscrollcommand=cap_scrollbar_v.set,
-                             xscrollcommand=cap_scrollbar_h.set)
+                            xscrollcommand=cap_scrollbar_h.set)
 
-        cap_canvas.pack(side="left", fill="both", expand=True)
-        cap_scrollbar_v.pack(side="right", fill="y")
+        # Función para scroll con rueda del mouse
+        def on_cap_mousewheel(event):
+            cap_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        def on_cap_shift_mousewheel(event):
+            cap_canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+
+        # Vincular eventos de scroll
+        cap_canvas.bind("<MouseWheel>", on_cap_mousewheel)
+        cap_canvas.bind("<Shift-MouseWheel>", on_cap_shift_mousewheel)
+        cap_canvas.bind("<Button-4>", lambda e: cap_canvas.yview_scroll(-1, "units"))
+        cap_canvas.bind("<Button-5>", lambda e: cap_canvas.yview_scroll(1, "units"))
+
+        # Pack de elementos
         cap_scrollbar_h.pack(side="bottom", fill="x")
+        cap_scrollbar_v.pack(side="right", fill="y")
+        cap_canvas.pack(side="left", fill="both", expand=True)
+
+        # Hacer que el canvas tenga foco para recibir eventos de teclado/mouse
+        adj_canvas.focus_set()
+        cap_canvas.focus_set()
 
     def setup_visualization_panel(self, parent):
         parent.configure(bg='#ffffff')
 
-        viz_frame = tk.LabelFrame(parent, text="Network Visualization",
+        viz_frame = tk.LabelFrame(parent, text="• Visualización de Red",
                                   font=("Segoe UI", 11, "normal"),
                                   bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
         viz_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
@@ -252,7 +296,7 @@ class VirtualNetworkUI:
         btn_frame = tk.Frame(viz_frame, bg='#ffffff')
         btn_frame.pack(fill=tk.X, padx=8, pady=(8, 4))
 
-        ttk.Button(btn_frame, text="Refresh View", command=self.update_visualization,
+        ttk.Button(btn_frame, text="Actualizar Vista", command=self.update_visualization,
                    style='Modern.TButton').pack(side=tk.LEFT, padx=4)
 
     def setup_demands_results_panel(self, parent):
@@ -263,7 +307,7 @@ class VirtualNetworkUI:
         main_panel.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
 
         # Panel de demandas con diseño limpio
-        demands_frame = tk.LabelFrame(main_panel, text="Traffic Demands",
+        demands_frame = tk.LabelFrame(main_panel, text="• Demandas de Tráfico",
                                       font=("Segoe UI", 11, "normal"),
                                       bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
         demands_frame.pack(fill=tk.X, pady=(0, 8))
@@ -290,7 +334,7 @@ class VirtualNetworkUI:
         demands_scrollbar.pack(side="right", fill="y")
 
         # Panel de resultados con diseño moderno
-        results_frame = tk.LabelFrame(main_panel, text="Analysis Results",
+        results_frame = tk.LabelFrame(main_panel, text="• Resultados del Análisis",
                                       font=("Segoe UI", 11, "normal"),
                                       bg='#ffffff', fg='#2c3e50', bd=0, relief='flat')
         results_frame.pack(fill=tk.BOTH, expand=True)
@@ -316,18 +360,18 @@ class VirtualNetworkUI:
         result_scrollbar.pack(side="right", fill="y")
 
         # Mensaje inicial con diseño limpio
-        self.result_text.insert(tk.END, "Virtual Network Analysis Dashboard\n")
+        self.result_text.insert(tk.END, "Panel de Control de Red Virtual\n")
         self.result_text.insert(tk.END, "=" * 38 + "\n\n")
-        self.result_text.insert(tk.END, "Getting Started:\n")
+        self.result_text.insert(tk.END, "Pasos Iniciales:\n")
         self.result_text.insert(
-            tk.END, "1. Configure network nodes and demands\n")
+            tk.END, "1. Configura los nodos y demandas de la red\n")
         self.result_text.insert(
-            tk.END, "2. Set up adjacency and capacity matrices\n")
+            tk.END, "2. Establece las matrices de adyacencia y capacidad\n")
         self.result_text.insert(
-            tk.END, "3. Define traffic demand parameters\n")
+            tk.END, "3. Define los parámetros de demanda de tráfico\n")
         self.result_text.insert(
-            tk.END, "4. Click 'Analyze' to run optimization\n\n")
-        self.result_text.insert(tk.END, "Ready for network configuration...")
+            tk.END, "4. Haz clic en 'Analizar' para ejecutar la optimización\n\n")
+        self.result_text.insert(tk.END, "Listo para la configuración de red...")
 
     def update_matrices(self):
         n = self.num_nodes.get()
@@ -397,7 +441,7 @@ class VirtualNetworkUI:
         n_nodes = self.num_nodes.get()
         self.demands = []
 
-        headers = ["#", "Source", "Dest", "Demand (Mbps)"]
+        headers = ["#", "Origen", "Destino", "Demanda (Mbps)"]
         for col, header in enumerate(headers):
             tk.Label(self.demand_scrollable_frame, text=header,
                      font=("Arial", 9, "bold")).grid(row=0, column=col)
