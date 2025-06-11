@@ -16,13 +16,13 @@ def revenue_cost_ratio(total_revenue, total_cost):
         return 0.0
     return total_revenue / total_cost
 
-def total_revenue(allocated_details):
-    """Suma los ingresos de las demandas asignadas usando REVENUE_PER_MBPS."""
-    return sum(detail.get('revenue', 0) * REVENUE_PER_MBPS for detail in allocated_details)
+def total_revenue(allocated_details, revenue_per_mbps=1.0):
+    """Suma los ingresos de las demandas asignadas usando el parámetro de revenue por Mbps."""
+    return sum(detail.get('revenue', 0) * revenue_per_mbps for detail in allocated_details)
 
-def total_cost(allocated_details):
-    """Suma los costos de las demandas asignadas usando COST_PER_MBPS."""
-    return sum(detail.get('cost', 0) * COST_PER_MBPS for detail in allocated_details)
+def total_cost(allocated_details, cost_per_mbps=1.0):
+    """Suma los costos de las demandas asignadas usando el parámetro de coste por Mbps."""
+    return sum(detail.get('cost', 0) * cost_per_mbps for detail in allocated_details)
 
 def num_demands_assigned(allocated_demands):
     """Cuenta las demandas asignadas."""

@@ -141,6 +141,16 @@ class VirtualNetworkUI:
                                      fg='#27ae60', bg='#ffffff')
         self.status_label.pack(side=tk.RIGHT, padx=12)
 
+        # Añadir campos para Coste y Revenue por Mbps
+        price_frame = tk.Frame(parent, bg='#ffffff')
+        price_frame.pack(fill=tk.X, padx=12, pady=(0, 8))
+        tk.Label(price_frame, text="Cost per Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
+        self.cost_per_mbps = tk.DoubleVar(value=1.0)
+        tk.Entry(price_frame, textvariable=self.cost_per_mbps, width=8).pack(side=tk.LEFT, padx=(0, 20))
+        tk.Label(price_frame, text="Revenue per Mbps:", font=("Segoe UI", 10), bg='#ffffff', fg='#34495e').pack(side=tk.LEFT, padx=(0, 8))
+        self.revenue_per_mbps = tk.DoubleVar(value=10.0)
+        tk.Entry(price_frame, textvariable=self.revenue_per_mbps, width=8).pack(side=tk.LEFT, padx=(0, 20))
+
     def setup_matrices_panel(self, parent):
         parent.configure(bg='#ffffff')
 
@@ -878,7 +888,9 @@ class VirtualNetworkUI:
                 'capacity_matrix': capacity_matrix,
                 'demands': demands_list
             }
-            
+            # Obtener coste y revenue por Mbps del usuario
+            cost_per_mbps = self.cost_per_mbps.get()
+            revenue_per_mbps = self.revenue_per_mbps.get()
             # Mostrar información inicial del análisis
             self._display_header()
             self._display_input_summary(n, len(demands_list), total_demand_bandwidth)
@@ -895,9 +907,9 @@ class VirtualNetworkUI:
             result = allocator.offline_brute_force_allocation()
             
             if result['success']:
-                self._display_detailed_results(result, demands_list, allocator)
+                self._display_detailed_results(result, demands_list, allocator, cost_per_mbps, revenue_per_mbps)
                 self._display_performance_metrics(result)
-                self._show_comprehensive_summary(result)
+                self._show_comprehensive_summary(result, cost_per_mbps, revenue_per_mbps)
                 
                 return {
                     'capacity_matrix': capacity_matrix,
@@ -970,19 +982,17 @@ class VirtualNetworkUI:
         self.result_text.insert(tk.END, "Estado: Procesando... Por favor espere\n")
         self.root.update()
 
-    def _display_detailed_results(self, result, demands_list, allocator):
+    def _display_detailed_results(self, result, demands_list, allocator, cost_per_mbps=1.0, revenue_per_mbps=1.0):
         # Resultados principales del algoritmo
         self.result_text.insert(tk.END, "\nRESULTADOS DE ASIGNACIÓN ÓPTIMA\n")
         self.result_text.insert(tk.END, "="*40 + "\n")
-
         # KPIs calculados modularmente
         acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(demands_list))
-        total_rev = kpi.total_revenue(result.get('allocation_details', []))
-        total_cst = kpi.total_cost(result.get('allocation_details', []))
+        total_rev = kpi.total_revenue(result.get('allocation_details', []), revenue_per_mbps)
+        total_cst = kpi.total_cost(result.get('allocation_details', []), cost_per_mbps)
         revenue_cost = kpi.revenue_cost_ratio(total_rev, total_cst)
         assigned = kpi.num_demands_assigned(result['allocated_demands'])
         rejected = kpi.num_demands_rejected(result['rejected_demands'])
-
         main_results = [
             f"Ratio de aceptación: {acceptance:.2%}",
             f"Ratio ingresos/costos: {revenue_cost:.2f}",
@@ -993,7 +1003,6 @@ class VirtualNetworkUI:
         ]
         for line in main_results:
             self.result_text.insert(tk.END, f"{line}\n")
-
         # Detalles específicos de cada asignación
         if result.get('allocation_details'):
             self.result_text.insert(tk.END, "\nDETALLES DE ASIGNACIONES EXITOSAS\n")
@@ -1017,10 +1026,10 @@ class VirtualNetworkUI:
         self.result_text.insert(tk.END, f"Combinaciones totales evaluadas: {total_combs}\n")
         self.result_text.insert(tk.END, f"Combinaciones válidas encontradas: {valid_combs}\n")
 
-    def _show_comprehensive_summary(self, result):
+    def _show_comprehensive_summary(self, result, cost_per_mbps=1.0, revenue_per_mbps=1.0):
         acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(result['allocated_demands']) + len(result['rejected_demands']))
-        total_rev = kpi.total_revenue(result.get('allocation_details', []))
-        total_cst = kpi.total_cost(result.get('allocation_details', []))
+        total_rev = kpi.total_revenue(result.get('allocation_details', []), revenue_per_mbps)
+        total_cst = kpi.total_cost(result.get('allocation_details', []), cost_per_mbps)
         revenue_cost = kpi.revenue_cost_ratio(total_rev, total_cst)
         assigned = kpi.num_demands_assigned(result['allocated_demands'])
         rejected = kpi.num_demands_rejected(result['rejected_demands'])
