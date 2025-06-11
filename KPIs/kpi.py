@@ -1,5 +1,9 @@
 # KPIs para la asignación de red virtual
 
+# Constants for cost and revenue per Mbps
+COST_PER_MBPS = 1.0  # Change as needed
+REVENUE_PER_MBPS = 10.0  # Change as needed
+
 def acceptance_ratio(allocated_demands, total_demands):
     """Calcula el ratio de aceptación de demandas."""
     if total_demands == 0:
@@ -13,12 +17,12 @@ def revenue_cost_ratio(total_revenue, total_cost):
     return total_revenue / total_cost
 
 def total_revenue(allocated_details):
-    """Suma los ingresos de las demandas asignadas."""
-    return sum(detail.get('revenue', 0) for detail in allocated_details)
+    """Suma los ingresos de las demandas asignadas usando REVENUE_PER_MBPS."""
+    return sum(detail.get('revenue', 0) * REVENUE_PER_MBPS for detail in allocated_details)
 
 def total_cost(allocated_details):
-    """Suma los costos de las demandas asignadas."""
-    return sum(detail.get('cost', 0) for detail in allocated_details)
+    """Suma los costos de las demandas asignadas usando COST_PER_MBPS."""
+    return sum(detail.get('cost', 0) * COST_PER_MBPS for detail in allocated_details)
 
 def num_demands_assigned(allocated_demands):
     """Cuenta las demandas asignadas."""

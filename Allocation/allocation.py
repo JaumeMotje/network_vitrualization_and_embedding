@@ -318,7 +318,7 @@ class VirtualNetworkAllocation:
                 'path': path,
                 'path_length': len(path) - 1,
                 'cost': self.calculate_path_cost(path, demand['bandwidth']),
-                'revenue': self.calculate_path_cost(path, demand['bandwidth'])
+                'revenue': demand['bandwidth']
             })
         
         return {

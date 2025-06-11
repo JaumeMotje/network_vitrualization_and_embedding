@@ -977,9 +977,9 @@ class VirtualNetworkUI:
 
         # KPIs calculados modularmente
         acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(demands_list))
-        revenue_cost = kpi.revenue_cost_ratio(result['total_revenue'], result['total_cost'])
         total_rev = kpi.total_revenue(result.get('allocation_details', []))
         total_cst = kpi.total_cost(result.get('allocation_details', []))
+        revenue_cost = kpi.revenue_cost_ratio(total_rev, total_cst)
         assigned = kpi.num_demands_assigned(result['allocated_demands'])
         rejected = kpi.num_demands_rejected(result['rejected_demands'])
 
@@ -1019,7 +1019,9 @@ class VirtualNetworkUI:
 
     def _show_comprehensive_summary(self, result):
         acceptance = kpi.acceptance_ratio(result['allocated_demands'], len(result['allocated_demands']) + len(result['rejected_demands']))
-        revenue_cost = kpi.revenue_cost_ratio(result['total_revenue'], result['total_cost'])
+        total_rev = kpi.total_revenue(result.get('allocation_details', []))
+        total_cst = kpi.total_cost(result.get('allocation_details', []))
+        revenue_cost = kpi.revenue_cost_ratio(total_rev, total_cst)
         assigned = kpi.num_demands_assigned(result['allocated_demands'])
         rejected = kpi.num_demands_rejected(result['rejected_demands'])
         summary = (f"ANÁLISIS DE RED COMPLETADO\n\n"
